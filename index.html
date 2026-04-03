@@ -85,7 +85,7 @@
     /* FORM */
     .form-wrap {
       width: 100%; max-width: 440px;
-      opacity: 0; animation: fadeUp 0.7s ease 0.9s forwards;
+      opacity: 1;
     }
     .form-note { font-size: 9px; color: #aaa; letter-spacing: 0.1em; margin-top: 10px; text-align: center; }
 
@@ -309,7 +309,7 @@
   <h2 class="cta-title reveal">MOST COUPLES TALK.<br /><span class="red">FEW ACTUALLY SAY ANYTHING.</span></h2>
   <p class="reveal" style="font-size:12px;color:#444;letter-spacing:0.08em;max-width:400px;line-height:1.8;">Brutal Truths is the free game designed to change that.</p>
 
-  <div class="form-wrap reveal" style="animation:none;opacity:1;">
+  <div class="form-wrap reveal" style="opacity:1;">
     <div id="bt-form-2" style="width:100%;">
       <div id="bt-form-2-inner">
         <div style="display:flex;flex-direction:column;gap:8px;">
@@ -378,6 +378,27 @@
     setTimeout(function() {
       window.location.href = 'https://brutaltruths.loudminds.club/play';
     }, 1500);
+  }
+
+  async function btSubmit(inputId, formId) {
+    const email = document.getElementById(inputId).value;
+    if (!email || !email.includes('@')) {
+      document.getElementById(inputId).style.border = '2px solid #E8001D';
+      return;
+    }
+    document.getElementById(formId + '-inner').style.display = 'none';
+    document.getElementById(formId + '-success').style.display = 'block';
+    try {
+      await fetch('https://assets.mailerlite.com/jsonp/2241740/forms/183706428898281233/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'fields[email]=' + encodeURIComponent(email) + '&ml-submit=1&anticsrf=true',
+        mode: 'no-cors'
+      });
+    } catch(e) {}
+    setTimeout(function() {
+      window.location.href = 'https://brutaltruths.loudminds.club/play';
+    }, 1200);
   }
 
   // Scroll reveal
