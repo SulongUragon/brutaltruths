@@ -724,13 +724,13 @@ function Game({ p1, p2, deck, onFinish }) {
     const p2label = p2v === "y" ? "answered" : "skipped";
     const prompt = `You are a cold, psychologically sharp relationship analyst for LoudMindsClub — a dark psychology brand. No therapy speak. No comfort. Just truth.
 
-Question asked: "${cur.q}"
-${p1} ${p1label} this question.
-${p2} ${p2label} this question.
+Note: "chose to answer" means the player was willing to engage with the question out loud. "chose to skip" means they declined.
 
-${bothAnswered ? "Both answered." : oneSkipped ? "One answered, one skipped." : "Both skipped."}
+Question: "${cur.q}"
+${p1} chose to ${p1label === "answered" ? "answer" : "skip"}.
+${p2} chose to ${p2label === "answered" ? "answer" : "skip"}.
 
-Write a 2-sentence psychological insight about what this reveals about their dynamic. Be sharp, dark, and direct. No fluff. No advice. Just observation.`;
+Based solely on the question and who engaged vs who avoided it, write a 2-sentence psychological insight about what this pattern reveals. Sharp, dark, no fluff, no advice, no questions back to me.`;
 
     setLoadingInsight(true);
     setInsight(null);
