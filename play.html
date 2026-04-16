@@ -21,6 +21,7 @@
     }
     .back-home:hover { color: #C9A028; }
     .gold-bar { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #C9A028, transparent); z-index: 200; opacity: 0.6; }
+    @keyframes pulse { 0%,100%{opacity:0.5} 50%{opacity:0.2} }
   </style>
 </head>
 <body>
@@ -694,6 +695,8 @@ function Setup({ onStart }) {
 }
 
 // ── GAME ──────────────────────────────────────────────────────
+const WORKER = "https://lmc-repurpose-api.sulonguragon.workers.dev";
+
 function Game({ p1, p2, deck, onFinish }) {
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -701,6 +704,41 @@ function Game({ p1, p2, deck, onFinish }) {
   const [p1v, setP1v] = useState(null);
   const [p2v, setP2v] = useState(null);
   const [scores, setScores] = useState({ p1: initScore(), p2: initScore() });
+  const [insight, setInsight] = useState(null);
+  const [loadingInsight, setLoadingInsight] = useState(false);
+
+  useEffect(() => {
+    if (!p1v || !p2v) return;
+    const apiKey = localStorage.getItem("lmc_repurpose_key");
+    if (!apiKey) return;
+    const cur = deck[idx];
+    const bothAnswered = p1v === "y" && p2v === "y";
+    const oneSkipped = (p1v === "n") !== (p2v === "n");
+    const bothSkipped = p1v === "n" && p2v === "n";
+    const p1label = p1v === "y" ? "answered" : "skipped";
+    const p2label = p2v === "y" ? "answered" : "skipped";
+    const prompt = `You are a cold, psychologically sharp relationship analyst for LoudMindsClub — a dark psychology brand. No therapy speak. No comfort. Just truth.
+
+Question asked: "${cur.q}"
+${p1} ${p1label} this question.
+${p2} ${p2label} this question.
+
+${bothAnswered ? "Both answered." : oneSkipped ? "One answered, one skipped." : "Both skipped."}
+
+Write a 2-sentence psychological insight about what this reveals about their dynamic. Be sharp, dark, and direct. No fluff. No advice. Just observation.`;
+
+    setLoadingInsight(true);
+    setInsight(null);
+    fetch(`${WORKER}/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 120, messages: [{ role: "user", content: prompt }], apiKey })
+    })
+      .then(r => r.json())
+      .then(d => setInsight(d.content?.[0]?.text || null))
+      .catch(() => setInsight(null))
+      .finally(() => setLoadingInsight(false));
+  }, [p1v, p2v]);
 
   const cur = deck[idx];
   const cat = catById[cur?.category] || CATS[0];
@@ -721,7 +759,7 @@ function Game({ p1, p2, deck, onFinish }) {
     setFading(true);
     setTimeout(() => {
       if (idx+1>=deck.length) { onFinish(ns); return; }
-      setIdx(i=>i+1); setRevealed(false); setFading(false); setP1v(null); setP2v(null);
+      setIdx(i=>i+1); setRevealed(false); setFading(false); setP1v(null); setP2v(null); setInsight(null);
     }, 300);
   }
 
@@ -765,9 +803,22 @@ function Game({ p1, p2, deck, onFinish }) {
               <button onClick={() => mark(who,"n")} style={{ ...s.pbtn, borderColor:"#222", background:val==="n"?"#222":"transparent", color:val==="n"?"#555":"#2a2a2a", opacity:val==="y"?0.2:1, cursor:val?"default":"pointer" }}>SKIP</button>
             </div>
           ))}
+          {p1v && p2v && (loadingInsight || insight) && (
+            <div style={{ borderTop:"1px solid #161616", marginTop:8, paddingTop:14, display:"flex", flexDirection:"column", gap:8 }}>
+              {loadingInsight
+                ? <p style={{ fontSize:9, color:"#C9A028", fontFamily:"'DM Mono',monospace", letterSpacing:"0.25em", opacity:0.5, textAlign:"center", animation:"pulse 1.5s ease infinite" }}>READING THE ROOM...</p>
+                : insight && (
+                  <div style={{ background:"#0a0a0a", border:"1px solid #C9A02830", padding:"14px 16px", position:"relative" }}>
+                    <div style={{ fontSize:8, fontFamily:"'DM Mono',monospace", letterSpacing:"0.3em", color:"#C9A028", opacity:0.5, marginBottom:8 }}>PSYCHOLOGICAL INSIGHT</div>
+                    <p style={{ fontSize:11, color:"#888", fontFamily:"'DM Mono',monospace", letterSpacing:"0.04em", lineHeight:1.9, margin:0 }}>{insight}</p>
+                  </div>
+                )
+              }
+            </div>
+          )}
           {p1v && p2v
-            ? <button style={{ ...s.btn, background:"#C9A028", color:"#fff" }} onClick={next}>NEXT →</button>
-            : <p style={{ fontSize:9, color:"#2a2a2a", fontFamily:"monospace", textAlign:"center", margin:"4px 0 0" }}>
+            ? <button style={{ ...s.btn, background:"#C9A028", color:"#000", marginTop:8 }} onClick={next}>NEXT →</button>
+            : <p style={{ fontSize:9, color:"#2a2a2a", fontFamily:"'DM Mono',monospace", textAlign:"center", margin:"4px 0 0" }}>
                 {!p1v&&!p2v?"Both players respond":!p1v?`Waiting for ${p1}...`:`Waiting for ${p2}...`}
               </p>
           }
