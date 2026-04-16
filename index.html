@@ -1,140 +1,413 @@
 <!DOCTYPE html>
-
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brutal Truths — LoudMindsClub</title>
+<meta name="description" content="Questions you've been too afraid to ask. Truths you've been too afraid to say.">
+<meta name="theme-color" content="#050505">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050505;
+    --surface: #0d0d0d;
+    --border: #181818;
+    --gold: #C9A028;
+    --gold-dim: #6b5510;
+    --text: #f0ece4;
+    --muted: #444;
+    --muted2: #222;
+    --mono: 'DM Mono', monospace;
+    --display: 'Bebas Neue', sans-serif;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRAIN */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,5,5,0.92);
+    backdrop-filter: blur(16px);
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .nav-brand img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    mask-image: radial-gradient(ellipse 75% 75% at center, black 45%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 75% 75% at center, black 45%, transparent 100%);
+  }
+
+  .nav-brand span {
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 4px;
+    color: var(--text);
+  }
+
+  .nav-brand span em {
+    font-style: normal;
+    color: var(--gold);
+  }
+
+  .nav-back {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-back:hover { color: var(--gold); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    mask-image: radial-gradient(ellipse 70% 70% at center, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 70% at center, black 40%, transparent 100%);
+    margin-bottom: 40px;
+    filter: drop-shadow(0 0 40px rgba(201,160,40,0.15));
+  }
+
+  .hero-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    color: var(--gold);
+    opacity: 0.7;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(64px, 14vw, 140px);
+    letter-spacing: 6px;
+    line-height: 0.9;
+    color: var(--text);
+    margin-bottom: 32px;
+  }
+
+  .hero h1 span { color: var(--gold); }
+
+  .hero-sub {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    line-height: 1.9;
+    max-width: 400px;
+    margin-bottom: 48px;
+  }
+
+  .hero-divider {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--gold-dim), transparent);
+    margin: 0 auto 48px;
+  }
+
+  /* PLAY CTA */
+  .btn-play {
+    display: inline-block;
+    background: var(--gold);
+    color: #0a0a0a;
+    text-decoration: none;
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 5px;
+    padding: 18px 56px;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .btn-play:hover {
+    background: #d4a930;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(201,160,40,0.2);
+  }
+
+  /* SECTION */
+  section {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* DOWNLOAD CARDS */
+  .downloads {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dl-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    transition: border-color 0.2s;
+  }
+
+  .dl-card:hover { border-color: var(--gold-dim); }
+
+  .dl-num {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    opacity: 0.6;
+    flex-shrink: 0;
+    width: 24px;
+  }
+
+  .dl-info { flex: 1; }
+
+  .dl-title {
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .dl-desc {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+  }
+
+  .btn-dl {
+    display: inline-block;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    text-decoration: none;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    padding: 8px 18px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-dl:hover {
+    background: var(--gold);
+    color: #0a0a0a;
+    border-color: var(--gold);
+  }
+
+  /* SUPPORT */
+  .support {
+    text-align: center;
+    padding: 48px 24px 80px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .support p {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    line-height: 1.9;
+    margin-bottom: 16px;
+  }
+
+  .support a {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .support a:hover { opacity: 1; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  footer span {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted2);
+    text-transform: uppercase;
+  }
+
+  footer a {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  footer a:hover { color: var(--gold); }
+
+  /* GOLD TOP BAR */
+  .gold-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    z-index: 200;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 600px) {
+    nav { padding: 14px 20px; }
+    .dl-card { flex-wrap: wrap; padding: 20px; }
+    footer { flex-direction: column; gap: 10px; text-align: center; }
+  }
+</style>
 </head>
-<body style="margin:0;padding:0;background:#1a1a1a;font-family:Georgia,serif;" bgcolor="#1a1a1a">
+<body>
 
-<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#1a1a1a" style="background:#1a1a1a;padding:40px 20px;">
-<tr><td align="center">
-<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+<div class="gold-bar"></div>
 
-  <!-- Red top bar -->
+<nav>
+  <a href="https://brutaltruths.loudminds.club" class="nav-brand">
+    <img src="logo-gold.png" alt="Brutal Truths">
+    <span>BRUTAL <em>TRUTHS</em></span>
+  </a>
+  <a href="https://loudminds.club" class="nav-back">← loudminds.club</a>
+</nav>
 
-  <tr><td bgcolor="#C9A028" style="background:#C9A028;height:8px;line-height:8px;font-size:8px;">&nbsp;</td></tr>
+<!-- HERO -->
+<div class="hero">
+  <img src="logo-gold.png" alt="Brutal Truths" class="hero-logo">
+  <p class="hero-eyebrow">LoudMindsClub</p>
+  <h1>BRUTAL<br><span>TRUTHS</span></h1>
+  <p class="hero-sub">Questions you've been too afraid to ask.<br>Truths you've been too afraid to say.<br>Play at your own risk.</p>
+  <div class="hero-divider"></div>
+  <a href="https://brutaltruths.loudminds.club/play" class="btn-play">PLAY NOW →</a>
+</div>
 
-  <!-- Header -->
+<!-- FREEBIES -->
+<section>
+  <p class="section-label">Free Downloads</p>
+  <div class="downloads">
 
-  <tr>
-    <td bgcolor="#080808" style="background:#080808;padding:32px 40px;">
-      <table cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td style="padding-right:16px;vertical-align:middle;">
-            <img src="logo-gold.png" alt="LoudMindsClub" width="48" height="48" style="display:block;width:48px;height:48px;object-fit:cover;-webkit-mask-image:radial-gradient(ellipse 75% 75% at center,black 45%,transparent 100%);mask-image:radial-gradient(ellipse 75% 75% at center,black 45%,transparent 100%);" />
-          </td>
-          <td style="vertical-align:middle;">
-            <p style="margin:0;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.3em;color:#C9A028;">LOUDMINDSCLUB</p>
-            <h1 style="margin:8px 0 0;font-family:'Courier New',monospace;font-size:32px;color:#f0ece4;letter-spacing:0.08em;line-height:1.1;">BRUTAL<br/>TRUTHS</h1>
-          </td>
-          <td style="vertical-align:middle;text-align:right;padding-left:24px;">
-            <a href="https://loudminds.club" style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.2em;color:#3a3a3a;text-decoration:none;">← loudminds.club</a>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
+    <div class="dl-card">
+      <div class="dl-num">01</div>
+      <div class="dl-info">
+        <div class="dl-title">50 BRUTAL QUESTIONS</div>
+        <div class="dl-desc">The 50 most confrontational questions from the deck. Printable. Cut them up. Play anywhere.</div>
+      </div>
+      <a href="https://brutaltruths.loudminds.club/50-brutal-questions.pdf" class="btn-dl">↓ PDF</a>
+    </div>
 
-  <!-- Intro -->
+    <div class="dl-card">
+      <div class="dl-num">02</div>
+      <div class="dl-info">
+        <div class="dl-title">DARK PSYCHOLOGY OF LOVE</div>
+        <div class="dl-desc">Why relationships really break down. Attachment styles, trauma bonding, power dynamics.</div>
+      </div>
+      <a href="https://brutaltruths.loudminds.club/dark-psychology-of-love.pdf" class="btn-dl">↓ PDF</a>
+    </div>
 
-  <tr>
-    <td bgcolor="#1a1a1a" style="background:#1a1a1a;padding:36px 40px;border-left:3px solid #C9A028;">
-      <p style="margin:0 0 16px;font-size:20px;color:#f0ece4;font-style:italic;line-height:1.4;">Your freebies are here.</p>
-      <p style="margin:0 0 12px;font-size:13px;color:#666;font-family:'Courier New',monospace;line-height:1.8;">You signed up for Brutal Truths. Good. That means you are either very brave or very curious. Either way, welcome.</p>
-      <p style="margin:0;font-size:13px;color:#666;font-family:'Courier New',monospace;line-height:1.8;">Here are your 3 free downloads. No catch. No expiry.</p>
-    </td>
-  </tr>
+    <div class="dl-card">
+      <div class="dl-num">03</div>
+      <div class="dl-info">
+        <div class="dl-title">CONVERSATION STARTER VAULT</div>
+        <div class="dl-desc">20 conversation frameworks for couples who want to go deeper without starting a fight.</div>
+      </div>
+      <a href="https://brutaltruths.loudminds.club/conversation-starter-vault.pdf" class="btn-dl">↓ PDF</a>
+    </div>
 
-  <!-- Divider -->
+  </div>
+</section>
 
-  <tr><td bgcolor="#C9A028" style="background:#C9A028;height:2px;line-height:2px;font-size:2px;">&nbsp;</td></tr>
+<!-- SUPPORT -->
+<div class="support">
+  <p>Everything here is free. If Brutal Truths started a real conversation for you, consider supporting us.</p>
+  <a href="https://ko-fi.com/loudmindsclub">BUY ME A TRUTH — ko-fi.com/loudmindsclub</a>
+</div>
 
-  <!-- Freebie 1 -->
+<!-- FOOTER -->
+<footer>
+  <span>LOUDMINDSCLUB © 2026</span>
+  <a href="https://loudminds.club">loudminds.club</a>
+</footer>
 
-  <tr>
-    <td bgcolor="#222222" style="background:#222222;padding:28px 40px;">
-      <p style="margin:0 0 4px;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.25em;color:#C9A028;">01</p>
-      <p style="margin:0 0 8px;font-family:'Courier New',monospace;font-size:14px;color:#f0ece4;font-weight:bold;letter-spacing:0.05em;">50 BRUTAL QUESTIONS</p>
-      <p style="margin:0 0 16px;font-size:12px;color:#666;font-family:'Courier New',monospace;line-height:1.7;">The 50 most confrontational questions from the deck. Printable. Cut them up. Play anywhere.</p>
-      <table cellpadding="0" cellspacing="0"><tr><td bgcolor="#C9A028" style="background:#C9A028;">
-        <a href="https://brutaltruths.loudminds.club/50-brutal-questions.pdf" style="display:inline-block;background:#C9A028;color:#222222;text-decoration:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.2em;padding:12px 24px;font-weight:bold;">DOWNLOAD PDF</a>
-      </td></tr></table>
-    </td>
-  </tr>
-
-  <tr><td bgcolor="#2a2a2a" style="background:#2a2a2a;height:1px;line-height:1px;font-size:1px;">&nbsp;</td></tr>
-
-  <!-- Freebie 2 -->
-
-  <tr>
-    <td bgcolor="#222222" style="background:#222222;padding:28px 40px;">
-      <p style="margin:0 0 4px;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.25em;color:#C9A028;">02</p>
-      <p style="margin:0 0 8px;font-family:'Courier New',monospace;font-size:14px;color:#f0ece4;font-weight:bold;letter-spacing:0.05em;">DARK PSYCHOLOGY OF LOVE</p>
-      <p style="margin:0 0 16px;font-size:12px;color:#666;font-family:'Courier New',monospace;line-height:1.7;">Why relationships really break down. Attachment styles, trauma bonding, power dynamics.</p>
-      <table cellpadding="0" cellspacing="0"><tr><td bgcolor="#C9A028" style="background:#C9A028;">
-        <a href="https://brutaltruths.loudminds.club/dark-psychology-of-love.pdf" style="display:inline-block;background:#C9A028;color:#222222;text-decoration:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.2em;padding:12px 24px;font-weight:bold;">DOWNLOAD PDF</a>
-      </td></tr></table>
-    </td>
-  </tr>
-
-  <tr><td bgcolor="#2a2a2a" style="background:#2a2a2a;height:1px;line-height:1px;font-size:1px;">&nbsp;</td></tr>
-
-  <!-- Freebie 3 -->
-
-  <tr>
-    <td bgcolor="#222222" style="background:#222222;padding:28px 40px;">
-      <p style="margin:0 0 4px;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.25em;color:#C9A028;">03</p>
-      <p style="margin:0 0 8px;font-family:'Courier New',monospace;font-size:14px;color:#f0ece4;font-weight:bold;letter-spacing:0.05em;">CONVERSATION STARTER VAULT</p>
-      <p style="margin:0 0 16px;font-size:12px;color:#666;font-family:'Courier New',monospace;line-height:1.7;">20 conversation frameworks for couples who want to go deeper without starting a fight.</p>
-      <table cellpadding="0" cellspacing="0"><tr><td bgcolor="#C9A028" style="background:#C9A028;">
-        <a href="https://brutaltruths.loudminds.club/conversation-starter-vault.pdf" style="display:inline-block;background:#C9A028;color:#222222;text-decoration:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.2em;padding:12px 24px;font-weight:bold;">DOWNLOAD PDF</a>
-      </td></tr></table>
-    </td>
-  </tr>
-
-  <!-- Red divider -->
-
-  <tr><td bgcolor="#C9A028" style="background:#C9A028;height:2px;line-height:2px;font-size:2px;">&nbsp;</td></tr>
-
-  <!-- Play CTA -->
-
-  <tr>
-    <td bgcolor="#080808" style="background:#080808;padding:36px 40px;text-align:center;">
-      <p style="margin:0 0 8px;font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.3em;color:#666;">THE GAME IS WAITING</p>
-      <p style="margin:0 0 24px;font-size:22px;color:#f0ece4;font-style:italic;">Are you brave enough to play?</p>
-      <table cellpadding="0" cellspacing="0" align="center"><tr><td bgcolor="#C9A028" style="background:#C9A028;">
-        <a href="https://brutaltruths.loudminds.club/play" style="display:inline-block;background:#C9A028;color:#222222;text-decoration:none;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.2em;padding:16px 40px;font-weight:bold;">PLAY NOW</a>
-      </td></tr></table>
-    </td>
-  </tr>
-
-  <!-- Support -->
-
-  <tr>
-    <td bgcolor="#1a1a1a" style="background:#1a1a1a;padding:24px 40px;text-align:center;">
-      <p style="margin:0 0 10px;font-size:11px;color:#555;font-family:'Courier New',monospace;line-height:1.7;">Everything here is free. If Brutal Truths started a real conversation for you, consider supporting us.</p>
-      <a href="https://ko-fi.com/loudmindsclub" style="color:#C9A028;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.15em;text-decoration:none;">BUY ME A TRUTH - ko-fi.com/loudmindsclub</a>
-    </td>
-  </tr>
-
-  <!-- Red bottom bar -->
-
-  <tr><td bgcolor="#C9A028" style="background:#C9A028;height:8px;line-height:8px;font-size:8px;">&nbsp;</td></tr>
-
-  <!-- Footer -->
-
-  <tr>
-    <td bgcolor="#1a1a1a" style="background:#1a1a1a;padding:20px 40px;text-align:center;">
-      <p style="margin:0;font-family:'Courier New',monospace;font-size:9px;color:#444;letter-spacing:0.1em;">LOUDMINDSCLUB - LOUDMINDS.CLUB</p>
-      <p style="margin:6px 0 0;font-family:'Courier New',monospace;font-size:9px;">
-        <a href="{$unsubscribe}" style="color:#444;text-decoration:none;letter-spacing:0.1em;">Unsubscribe</a>
-      </p>
-    </td>
-  </tr>
-
-</table>
-</td></tr>
-</table>
 </body>
 </html>
