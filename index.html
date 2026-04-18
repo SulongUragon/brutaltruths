@@ -12,16 +12,18 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #050505;
-    --surface: #0d0d0d;
-    --border: #181818;
-    --gold: #C9A028;
-    --gold-dim: #6b5510;
-    --text: #f0ece4;
-    --muted: #444;
-    --muted2: #222;
+    --bg: #050002;
+    --surface: #0d0003;
+    --border: #2a0008;
+    --red: #ff1a3a;
+    --red-dim: #4a0010;
+    --text: #f0e4e8;
+    --muted: #553040;
+    --muted2: #2a1018;
     --mono: 'DM Mono', monospace;
     --display: 'Bebas Neue', sans-serif;
+    --glow-sm: 0 0 12px rgba(255,26,58,0.5), 0 0 24px rgba(255,26,58,0.2);
+    --glow-md: 0 0 20px rgba(255,26,58,0.7), 0 0 40px rgba(255,26,58,0.3);
   }
 
   html, body {
@@ -81,7 +83,7 @@
 
   .nav-brand span em {
     font-style: normal;
-    color: var(--gold);
+    color: var(--red);
   }
 
   .nav-back {
@@ -92,7 +94,7 @@
     transition: color 0.2s;
   }
 
-  .nav-back:hover { color: var(--gold); }
+  .nav-back:hover { color: var(--red); }
 
   /* HERO */
   .hero {
@@ -120,7 +122,7 @@
   .hero-eyebrow {
     font-size: 9px;
     letter-spacing: 0.35em;
-    color: var(--gold);
+    color: var(--red);
     opacity: 0.7;
     margin-bottom: 20px;
     text-transform: uppercase;
@@ -135,7 +137,7 @@
     margin-bottom: 32px;
   }
 
-  .hero h1 span { color: var(--gold); }
+  .hero h1 span { color: var(--red); }
 
   .hero-sub {
     font-size: 13px;
@@ -149,14 +151,14 @@
   .hero-divider {
     width: 1px;
     height: 60px;
-    background: linear-gradient(to bottom, var(--gold-dim), transparent);
+    background: linear-gradient(to bottom, var(--red-dim), transparent);
     margin: 0 auto 48px;
   }
 
   /* PLAY CTA */
   .btn-play {
     display: inline-block;
-    background: var(--gold);
+    background: var(--red);
     color: #0a0a0a;
     text-decoration: none;
     font-family: var(--display);
@@ -218,12 +220,12 @@
     transition: border-color 0.2s;
   }
 
-  .dl-card:hover { border-color: var(--gold-dim); }
+  .dl-card:hover { border-color: var(--red-dim); }
 
   .dl-num {
     font-size: 9px;
     letter-spacing: 0.25em;
-    color: var(--gold);
+    color: var(--red);
     opacity: 0.6;
     flex-shrink: 0;
     width: 24px;
@@ -248,8 +250,8 @@
 
   .btn-dl {
     display: inline-block;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold);
+    border: 1px solid var(--red-dim);
+    color: var(--red);
     text-decoration: none;
     font-size: 9px;
     letter-spacing: 0.2em;
@@ -260,9 +262,9 @@
   }
 
   .btn-dl:hover {
-    background: var(--gold);
+    background: var(--red);
     color: #0a0a0a;
-    border-color: var(--gold);
+    border-color: var(--red);
   }
 
   /* SUPPORT */
@@ -287,7 +289,7 @@
   .support a {
     font-size: 10px;
     letter-spacing: 0.2em;
-    color: var(--gold);
+    color: var(--red);
     text-decoration: none;
     opacity: 0.7;
     transition: opacity 0.2s;
@@ -321,14 +323,14 @@
     transition: color 0.2s;
   }
 
-  footer a:hover { color: var(--gold); }
+  footer a:hover { color: var(--red); }
 
   /* GOLD TOP BAR */
-  .gold-bar {
+  .red-bar {
     position: fixed;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    background: linear-gradient(90deg, transparent, var(--red), transparent);
     z-index: 200;
     opacity: 0.6;
   }
@@ -342,7 +344,7 @@
 </head>
 <body>
 
-<div class="gold-bar"></div>
+<div class="red-bar"></div>
 
 <nav>
   <a href="https://brutaltruths.loudminds.club" class="nav-brand">
