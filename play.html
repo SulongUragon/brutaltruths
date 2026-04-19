@@ -603,7 +603,7 @@ const BANK = {
 
 const catById = Object.fromEntries(CATS.map(c => [c.id, c]));
 const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
-const initScore = () => ({ answered: 0, skipped: 0, history: [] });
+const initScore = () => ({ answered: 0, skipped: 0, dared: 0, history: [] });
 
 function buildDeck(counts) {
   const deck = [];
@@ -617,19 +617,76 @@ function buildDeck(counts) {
   return shuffle(deck);
 }
 
+// ── AMBIENT SOUND ─────────────────────────────────────────────
+let _actx = null, _droneGain = null, _drones = [], _hbLfo = null;
+function startAmbient() {
+  try {
+    _actx = _actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (_droneGain) return;
+    _droneGain = _actx.createGain();
+    _droneGain.gain.setValueAtTime(0, _actx.currentTime);
+    _droneGain.gain.linearRampToValueAtTime(0.055, _actx.currentTime + 2.5);
+    _droneGain.connect(_actx.destination);
+    [38, 57, 76].forEach((freq, i) => {
+      const o = _actx.createOscillator();
+      const g = _actx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.value = [0.5, 0.28, 0.18][i];
+      o.connect(g); g.connect(_droneGain); o.start(); _drones.push({ o, g });
+    });
+    const lfo = _actx.createOscillator();
+    const lfoG = _actx.createGain();
+    lfo.frequency.value = 0.85; lfoG.gain.value = 0.022;
+    lfo.connect(lfoG); lfoG.connect(_droneGain.gain); lfo.start(); _hbLfo = lfo;
+  } catch(e) {}
+}
+function stopAmbient() {
+  try {
+    if (!_droneGain) return;
+    _droneGain.gain.linearRampToValueAtTime(0.0001, _actx.currentTime + 1.2);
+    setTimeout(() => {
+      _drones.forEach(({o}) => { try { o.stop(); } catch(e){} });
+      try { if (_hbLfo) _hbLfo.stop(); } catch(e){}
+      _drones = []; _hbLfo = null; _droneGain = null;
+    }, 1300);
+  } catch(e) {}
+}
+
+// ── DARES ─────────────────────────────────────────────────────
+const DARES = [
+  "Look your partner in the eyes and say the first honest thing that comes to mind.",
+  "Let your partner read your last 10 texts to someone they've wondered about.",
+  "Tell your partner something you've thought about them but never said out loud.",
+  "Sit in silence for 30 seconds while your partner stares at you. Don't look away.",
+  "Let your partner ask you one question — you must answer completely honestly.",
+  "Tell your partner your most recent petty thought about them.",
+  "Admit the last time you were completely in the wrong and never fully owned it.",
+  "Tell your partner what you actually thought the first time you met them.",
+  "Tell your partner which one of their habits bothers you the most.",
+  "Admit the last thing you were secretly jealous about.",
+  "Let your partner go through your camera roll for 30 seconds.",
+  "Tell your partner the harshest true thing you've thought about them this week.",
+  "Admit something you've done that you hoped your partner would never find out.",
+  "Tell your partner what you think they're most insecure about — honestly.",
+  "Tell your partner the one conversation you've been avoiding the longest.",
+  "Read your partner your last voice note or long text to a close friend.",
+  "Tell your partner what you would change about yourself if you could.",
+  "Admit the last time you weren't fully present in this relationship.",
+];
+
 // ── SETUP ─────────────────────────────────────────────────────
 function Setup({ onStart }) {
-  const [p1, setP1] = useState("");
-  const [p2, setP2] = useState("");
-  const [step, setStep] = useState("names");
-  const [counts, setCounts] = useState(() => Object.fromEntries(CATS.map(c => [c.id, 0])));
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("bt_api_key") || "");
+  const [p1, setP1] = React.useState("");
+  const [p2, setP2] = React.useState("");
+  const [step, setStep] = React.useState("names");
+  const [counts, setCounts] = React.useState(() => Object.fromEntries(CATS.map(c => [c.id, 0])));
+  const [apiKey, setApiKey] = React.useState(() => localStorage.getItem("bt_api_key") || "");
+  const [intensity, setIntensity] = React.useState("brutal");
+  const [timerMode, setTimerMode] = React.useState(0);
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
-  function adj(id, d) {
-    setCounts(p => ({ ...p, [id]: Math.max(0, Math.min(25, p[id] + d)) }));
-  }
+  function adj(id, d) { setCounts(p => ({ ...p, [id]: Math.max(0, Math.min(25, p[id] + d)) })); }
 
   function preset(type) {
     const z = Object.fromEntries(CATS.map(c => [c.id, 0]));
@@ -648,12 +705,45 @@ function Setup({ onStart }) {
           <input style={s.inp} value={p1} placeholder="Name..." maxLength={18} onChange={e => setP1(e.target.value)} /></div>
         <div style={s.fld}><label style={s.lbl}>PLAYER 2</label>
           <input style={s.inp} value={p2} placeholder="Name..." maxLength={18} onChange={e => setP2(e.target.value)} /></div>
+
+        <div style={s.fld}>
+          <label style={s.lbl}>INTENSITY</label>
+          <div style={{ display:"flex", gap:4 }}>
+            {[["mild","MILD","Warm up first"],["brutal","BRUTAL","No filter"],["unhinged","UNHINGED","No turning back"]].map(([key,label,sub]) => (
+              <button key={key} onClick={() => setIntensity(key)} style={{
+                flex:1, padding:"12px 4px", border:`1px solid ${intensity===key?"#c0152a":"#1a1a1a"}`,
+                background: intensity===key?"rgba(192,21,42,0.08)":"#0d0d0d",
+                color: intensity===key?"#c0152a":"#333", cursor:"pointer",
+                fontFamily:"'DM Mono',monospace", fontSize:8, letterSpacing:"0.12em",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+              }}>
+                <span style={{ fontWeight:"500" }}>{label}</span>
+                <span style={{ opacity:0.5, fontSize:7 }}>{sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={s.fld}>
+          <label style={s.lbl}>TIMER PER QUESTION</label>
+          <div style={{ display:"flex", gap:4 }}>
+            {[[0,"OFF"],[60,"60s"],[90,"90s"]].map(([val,label]) => (
+              <button key={val} onClick={() => setTimerMode(val)} style={{
+                flex:1, padding:"10px 4px", border:`1px solid ${timerMode===val?"#c0152a":"#1a1a1a"}`,
+                background: timerMode===val?"rgba(192,21,42,0.08)":"#0d0d0d",
+                color: timerMode===val?"#c0152a":"#333", cursor:"pointer",
+                fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:"0.15em",
+              }}>{label}</button>
+            ))}
+          </div>
+        </div>
+
         <div style={s.fld}>
           <label style={s.lbl}>ANTHROPIC KEY <span style={{ color:"#c0152a", opacity:0.5 }}>(optional — enables AI insights)</span></label>
           <input style={s.inp} type="password" value={apiKey} placeholder="sk-ant-..." onChange={e => { setApiKey(e.target.value); localStorage.setItem("bt_api_key", e.target.value); }} />
         </div>
-        <button style={{ ...s.btn, background: "#c0152a", color: "#f0ece4", opacity: p1.trim() && p2.trim() ? 1 : 0.2 }}
-          disabled={!p1.trim() || !p2.trim()} onClick={() => setStep("cats")}>
+        <button style={{ ...s.btn, background:"#c0152a", color:"#f0ece4", opacity: p1.trim()&&p2.trim()?1:0.2 }}
+          disabled={!p1.trim()||!p2.trim()} onClick={() => setStep("cats")}>
           NEXT: BUILD DECK →
         </button>
       </div>
@@ -661,7 +751,7 @@ function Setup({ onStart }) {
   );
 
   return (
-    <div style={{ ...s.root, padding: 0, overflow: "hidden" }}>
+    <div style={{ ...s.root, padding:0, overflow:"hidden" }}>
       <div style={s.dkHeader}>
         <button style={s.back} onClick={() => setStep("names")}>← BACK</button>
         <span style={s.dkTitle}>BUILD YOUR DECK</span>
@@ -670,28 +760,28 @@ function Setup({ onStart }) {
       <div style={s.scroll}>
         <div style={s.presets}>
           {[["random","🎲 RANDOM"],["brutal","💀 BRUTAL"],["all","☠️ ALL"],["clear","✕ CLEAR"]].map(([k,l]) => (
-            <button key={k} style={s.pset} onClick={() => k==="clear" ? setCounts(Object.fromEntries(CATS.map(c=>[c.id,0]))) : preset(k)}>{l}</button>
+            <button key={k} style={s.pset} onClick={() => k==="clear"?setCounts(Object.fromEntries(CATS.map(c=>[c.id,0]))):preset(k)}>{l}</button>
           ))}
         </div>
         {CATS.map(cat => (
-          <div key={cat.id} style={{ ...s.catItem, borderColor: counts[cat.id]>0 ? cat.color:"#1c1c1c", background: counts[cat.id]>0 ? cat.color+"12":"#0f0f0f" }}>
-            <div style={{ ...s.dot, background: cat.color }} />
+          <div key={cat.id} style={{ ...s.catItem, borderColor:counts[cat.id]>0?cat.color:"#1c1c1c", background:counts[cat.id]>0?cat.color+"12":"#0f0f0f" }}>
+            <div style={{ ...s.dot, background:cat.color }} />
             <div style={s.catInfo}>
-              <span style={{ ...s.catLbl, color: counts[cat.id]>0 ? cat.color:"#444" }}>{cat.label}</span>
+              <span style={{ ...s.catLbl, color:counts[cat.id]>0?cat.color:"#444" }}>{cat.label}</span>
               <span style={s.catDesc}>{cat.desc}</span>
             </div>
             <div style={s.ctrl}>
               <button style={s.cbtn} onClick={() => adj(cat.id,-1)}>−</button>
-              <span style={{ ...s.cnum, color: counts[cat.id]>0 ? cat.color:"#2a2a2a" }}>{counts[cat.id]}</span>
+              <span style={{ ...s.cnum, color:counts[cat.id]>0?cat.color:"#2a2a2a" }}>{counts[cat.id]}</span>
               <button style={s.cbtn} onClick={() => adj(cat.id,1)}>+</button>
             </div>
           </div>
         ))}
-        <div style={{ height: 100 }} />
+        <div style={{ height:100 }} />
       </div>
       <div style={s.dkFooter}>
-        <button style={{ ...s.btn, background: total>=5?"#c0152a":"#1a1a1a", color: total>=5?"#fff":"#444", opacity: total>=5?1:0.5 }}
-          disabled={total<5} onClick={() => onStart(p1.trim(), p2.trim(), buildDeck(counts))}>
+        <button style={{ ...s.btn, background:total>=5?"#c0152a":"#1a1a1a", color:total>=5?"#fff":"#444", opacity:total>=5?1:0.5 }}
+          disabled={total<5} onClick={() => onStart(p1.trim(),p2.trim(),buildDeck(counts),intensity,timerMode)}>
           START WITH {total} QUESTIONS →
         </button>
       </div>
@@ -702,66 +792,95 @@ function Setup({ onStart }) {
 // ── GAME ──────────────────────────────────────────────────────
 const WORKER = "https://lmc-repurpose-api.sulonguragon.workers.dev";
 
-function Game({ p1, p2, deck, onFinish }) {
-  const [idx, setIdx] = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [fading, setFading] = useState(false);
-  const [p1v, setP1v] = useState(null);
-  const [p2v, setP2v] = useState(null);
-  const [scores, setScores] = useState({ p1: initScore(), p2: initScore() });
-  const [insight, setInsight] = useState(null);
-  const [loadingInsight, setLoadingInsight] = useState(false);
+function Game({ p1, p2, deck, intensity, timerMode, onFinish }) {
+  const [idx, setIdx] = React.useState(0);
+  const [revealed, setRevealed] = React.useState(false);
+  const [fading, setFading] = React.useState(false);
+  const [p1v, setP1v] = React.useState(null);
+  const [p2v, setP2v] = React.useState(null);
+  const [scores, setScores] = React.useState({ p1: initScore(), p2: initScore() });
+  const [insight, setInsight] = React.useState(null);
+  const [loadingInsight, setLoadingInsight] = React.useState(false);
+  const [timeLeft, setTimeLeft] = React.useState(null);
+  const [timesUp, setTimesUp] = React.useState(false);
+  const [streak, setStreak] = React.useState(0);
+  const [maxStreak, setMaxStreak] = React.useState(0);
+  const [dare, setDare] = React.useState(null);
+  const [soundOn, setSoundOn] = React.useState(() => localStorage.getItem("bt_sound")==="1");
+  const timerRef = React.useRef(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
+    if (soundOn) { startAmbient(); localStorage.setItem("bt_sound","1"); }
+    else { stopAmbient(); localStorage.setItem("bt_sound","0"); }
+  }, [soundOn]);
+
+  React.useEffect(() => {
+    clearInterval(timerRef.current);
+    setTimesUp(false);
+    if (revealed && timerMode > 0) {
+      setTimeLeft(timerMode);
+      timerRef.current = setInterval(() => {
+        setTimeLeft(t => {
+          if (t <= 1) { clearInterval(timerRef.current); setTimesUp(true); return 0; }
+          return t - 1;
+        });
+      }, 1000);
+    } else { setTimeLeft(null); }
+    return () => clearInterval(timerRef.current);
+  }, [revealed, idx]);
+
+  React.useEffect(() => { if (p1v && p2v) clearInterval(timerRef.current); }, [p1v, p2v]);
+
+  React.useEffect(() => {
     if (!p1v || !p2v) return;
     const apiKey = localStorage.getItem("bt_api_key") || localStorage.getItem("lmc_repurpose_key");
     if (!apiKey) return;
     const cur = deck[idx];
-    const bothAnswered = p1v === "y" && p2v === "y";
-    const oneSkipped = (p1v === "n") !== (p2v === "n");
-    const bothSkipped = p1v === "n" && p2v === "n";
-    const p1label = p1v === "y" ? "answered" : "skipped";
-    const p2label = p2v === "y" ? "answered" : "skipped";
-    const prompt = `You are a cold, psychologically sharp relationship analyst for LoudMindsClub — a dark psychology brand. No therapy speak. No comfort. Just truth.
-
-Note: "chose to answer" means the player was willing to engage with the question out loud. "chose to skip" means they declined.
-
-Question: "${cur.q}"
-${p1} chose to ${p1label === "answered" ? "answer" : "skip"}.
-${p2} chose to ${p2label === "answered" ? "answer" : "skip"}.
-
-Based solely on the question and who engaged vs who avoided it, write a 2-sentence psychological insight about what this pattern reveals. Sharp, dark, no fluff, no advice, no questions back to me.`;
-
-    setLoadingInsight(true);
-    setInsight(null);
+    const p1label = p1v==="n" ? "skipped" : "answered";
+    const p2label = p2v==="n" ? "skipped" : "answered";
+    const prompt = `You are a cold, psychologically sharp relationship analyst for LoudMindsClub — a dark psychology brand. No therapy speak. No comfort. Just truth.\n\nQuestion: "${cur.q}"\n${p1} chose to ${p1label}.\n${p2} chose to ${p2label}.\n\nBased solely on the question and who engaged vs who avoided it, write a 2-sentence psychological insight. Sharp, dark, no fluff.`;
+    setLoadingInsight(true); setInsight(null);
     fetch(`${WORKER}/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 120, messages: [{ role: "user", content: prompt }], apiKey })
-    })
-      .then(r => r.json())
-      .then(d => setInsight(d.content?.[0]?.text || null))
-      .catch(() => setInsight(null))
-      .finally(() => setLoadingInsight(false));
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ model:"claude-haiku-4-5-20251001", max_tokens:120, messages:[{role:"user",content:prompt}], apiKey })
+    }).then(r=>r.json()).then(d=>setInsight(d.content?.[0]?.text||null)).catch(()=>setInsight(null)).finally(()=>setLoadingInsight(false));
   }, [p1v, p2v]);
 
   const cur = deck[idx];
   const cat = catById[cur?.category] || CATS[0];
   const col = cat.color;
   const pct = (idx / deck.length) * 100;
+  const timerPct = timerMode>0 && timeLeft!==null ? (timeLeft/timerMode)*100 : 100;
+  const timerCol = timerPct>50 ? col : timerPct>20 ? "#FB923C" : "#c0152a";
+
+  const tapText = intensity==="unhinged" ? "TAP IF YOU DARE" : "TAP TO REVEAL";
+  const tapSub  = intensity==="unhinged" ? "There's no going back." : intensity==="mild" ? "Take your time." : "Brace yourselves.";
+
+  function openDare(who) { setDare({ who, text: DARES[Math.floor(Math.random()*DARES.length)] }); }
+
+  function closeDare(accepted) {
+    if (!dare) return;
+    const val = accepted ? "d" : "n";
+    if (dare.who==="p1") setP1v(val); else setP2v(val);
+    setDare(null);
+  }
 
   function mark(who, val) {
-    if (who==="p1" && !p1v) setP1v(val);
-    if (who==="p2" && !p2v) setP2v(val);
+    if (who==="p1" && !p1v) { if (val==="n") { openDare("p1"); return; } setP1v(val); }
+    if (who==="p2" && !p2v) { if (val==="n") { openDare("p2"); return; } setP2v(val); }
   }
 
   function next() {
+    const bothAnswered = (p1v==="y"||p1v==="d") && (p2v==="y"||p2v==="d");
+    const newStreak = bothAnswered ? streak+1 : 0;
+    const newMax = Math.max(maxStreak, newStreak);
+    setStreak(newStreak); setMaxStreak(newMax);
     const ns = {
-      p1: { answered: scores.p1.answered+(p1v==="y"?1:0), skipped: scores.p1.skipped+(p1v==="n"?1:0), history:[...scores.p1.history,{category:cur.category,skipped:p1v==="n"}] },
-      p2: { answered: scores.p2.answered+(p2v==="y"?1:0), skipped: scores.p2.skipped+(p2v==="n"?1:0), history:[...scores.p2.history,{category:cur.category,skipped:p2v==="n"}] },
+      p1:{ answered:scores.p1.answered+(p1v==="y"?1:0), dared:scores.p1.dared+(p1v==="d"?1:0), skipped:scores.p1.skipped+(p1v==="n"?1:0), history:[...scores.p1.history,{category:cur.category,skipped:p1v==="n",dared:p1v==="d"}] },
+      p2:{ answered:scores.p2.answered+(p2v==="y"?1:0), dared:scores.p2.dared+(p2v==="d"?1:0), skipped:scores.p2.skipped+(p2v==="n"?1:0), history:[...scores.p2.history,{category:cur.category,skipped:p2v==="n",dared:p2v==="d"}] },
+      maxStreak:newMax,
     };
-    setScores(ns);
-    setFading(true);
+    setScores(ns); setFading(true);
     setTimeout(() => {
       if (idx+1>=deck.length) { onFinish(ns); return; }
       setIdx(i=>i+1); setRevealed(false); setFading(false); setP1v(null); setP2v(null); setInsight(null);
@@ -770,21 +889,50 @@ Based solely on the question and who engaged vs who avoided it, write a 2-senten
 
   return (
     <div style={s.root}>
+      {dare && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.93)", zIndex:500, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div style={{ maxWidth:400, width:"100%", border:"1px solid #c0152a", background:"#080808", padding:28, display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ fontSize:8, fontFamily:"'DM Mono',monospace", letterSpacing:"0.35em", color:"#c0152a", opacity:0.6 }}>// DARE</div>
+            <p style={{ fontSize:14, color:"#f0ece4", fontFamily:"'DM Mono',monospace", lineHeight:1.8, margin:0 }}>{dare.text}</p>
+            <div style={{ display:"flex", gap:8, marginTop:8 }}>
+              <button onClick={() => closeDare(true)} style={{ flex:2, padding:"14px 0", background:"#c0152a", color:"#f0ece4", border:"none", fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:"0.2em", cursor:"pointer" }}>DARE DONE ✓</button>
+              <button onClick={() => closeDare(false)} style={{ flex:1, padding:"14px 0", background:"transparent", color:"#333", border:"1px solid #1a1a1a", fontFamily:"'DM Mono',monospace", fontSize:10, letterSpacing:"0.2em", cursor:"pointer" }}>SKIP</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={s.gh}>
         <div>
           <div style={s.glogo}>BRUTAL TRUTHS</div>
           <div style={{ fontSize:9, fontFamily:"monospace", letterSpacing:"0.12em", color:col, marginTop:2 }}>{cat.label}</div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          {streak > 0 && (
+            <div style={{ background:"rgba(192,21,42,0.08)", border:"1px solid rgba(192,21,42,0.2)", padding:"3px 8px" }}>
+              <span style={{ fontSize:8, fontFamily:"monospace", color:"#c0152a", letterSpacing:"0.15em" }}>{streak}✕ STREAK</span>
+            </div>
+          )}
+          <button onClick={() => setSoundOn(v=>!v)} title={soundOn?"Mute ambient":"Play ambient"} style={{ background:"transparent", border:"none", color:soundOn?"#c0152a":"#252525", fontSize:15, cursor:"pointer", padding:"0 2px", lineHeight:1 }}>♫</button>
           <div><span style={{ fontSize:26, color:"#f0f0f0", fontFamily:"Georgia,serif" }}>{idx+1}</span><span style={{ fontSize:11, color:"#333", fontFamily:"monospace" }}> / {deck.length}</span></div>
-          <button
-            onClick={() => { if(window.confirm("End the game now and see the scoreboard?")) onFinish(scores); }}
-            style={{ background:"transparent", border:"1px solid #c0152a", color:"#c0152a", fontSize:8, fontFamily:"monospace", letterSpacing:"0.15em", padding:"6px 10px", cursor:"pointer", borderRadius:3 }}>
-            END
-          </button>
+          <button onClick={() => { if(window.confirm("End the game now and see the scoreboard?")) onFinish({...scores, maxStreak}); }}
+            style={{ background:"transparent", border:"1px solid #c0152a", color:"#c0152a", fontSize:8, fontFamily:"monospace", letterSpacing:"0.15em", padding:"6px 10px", cursor:"pointer", borderRadius:3 }}>END</button>
         </div>
       </div>
+
       <div style={s.bar}><div style={{ ...s.barfill, width:`${pct}%`, background:col }} /></div>
+
+      {timerMode>0 && timeLeft!==null && (<>
+        <div style={{ width:"100%", maxWidth:480, height:2, background:"#111", marginBottom:6 }}>
+          <div style={{ height:"100%", width:`${timerPct}%`, background:timerCol, transition:"width 1s linear, background 0.4s" }} />
+        </div>
+        <div style={{ width:"100%", maxWidth:480, display:"flex", justifyContent:"flex-end", marginBottom:10 }}>
+          <span style={{ fontSize:10, fontFamily:"monospace", letterSpacing:"0.15em", color:timesUp?"#c0152a":timerCol, opacity:timesUp?1:0.8 }}>
+            {timesUp ? "TIME'S UP" : `${timeLeft}s`}
+          </span>
+        </div>
+      </>)}
+
       <div style={{ ...s.cardWrap, opacity:fading?0:1, transform:fading?"scale(0.96)":"scale(1)", transition:"all 0.28s ease" }}>
         <div style={{ ...s.card, borderColor:revealed?col:"#1c1c1c", boxShadow:revealed?`0 0 40px ${col}18`:"none" }}>
           <div style={{ ...s.pill, background:col }}>{cat.label}</div>
@@ -792,28 +940,31 @@ Based solely on the question and who engaged vs who avoided it, write a 2-senten
             ? <p style={s.q}>{cur.q}</p>
             : <div style={s.tap} onClick={() => setRevealed(true)}>
                 <div style={s.eye}>👁</div>
-                <p style={s.tapTxt}>TAP TO REVEAL</p>
-                <p style={s.tapSub}>Brace yourselves.</p>
+                <p style={s.tapTxt}>{tapText}</p>
+                <p style={s.tapSub}>{tapSub}</p>
               </div>
           }
         </div>
       </div>
+
       {!revealed && <button style={{ ...s.btn, background:"#c0152a", color:"#fff", marginTop:20 }} onClick={() => setRevealed(true)}>REVEAL QUESTION</button>}
       {revealed && (
         <div style={s.players}>
           {[{who:"p1",name:p1,val:p1v,col:"#FF4D4D"},{who:"p2",name:p2,val:p2v,col:"#38BDF8"}].map(({who,name,val,col:pc}) => (
             <div key={who} style={s.prow}>
               <span style={{ ...s.pname, color:pc }}>{name}</span>
-              <button onClick={() => mark(who,"y")} style={{ ...s.pbtn, borderColor:pc, background:val==="y"?pc:"transparent", color:val==="y"?"#000":pc, opacity:val==="n"?0.2:1, cursor:val?"default":"pointer" }}>ANSWERED</button>
-              <button onClick={() => mark(who,"n")} style={{ ...s.pbtn, borderColor:"#222", background:val==="n"?"#222":"transparent", color:val==="n"?"#555":"#2a2a2a", opacity:val==="y"?0.2:1, cursor:val?"default":"pointer" }}>SKIP</button>
+              <button onClick={() => mark(who,"y")} style={{ ...s.pbtn, borderColor:pc, background:val==="y"?pc:val==="d"?"rgba(192,21,42,0.15)":"transparent", color:val==="y"?"#0a0a0a":val==="d"?"#c0152a":pc, opacity:val==="n"?0.2:1, cursor:val?"default":"pointer" }}>
+                {val==="d"?"DARED ✓":"ANSWERED"}
+              </button>
+              <button onClick={() => mark(who,"n")} style={{ ...s.pbtn, borderColor:"#222", background:val==="n"?"#222":"transparent", color:val==="n"?"#555":"#2a2a2a", opacity:(val==="y"||val==="d")?0.2:1, cursor:val?"default":"pointer" }}>SKIP</button>
             </div>
           ))}
-          {p1v && p2v && (loadingInsight || insight) && (
-            <div style={{ borderTop:"1px solid #161616", marginTop:8, paddingTop:14, display:"flex", flexDirection:"column", gap:8 }}>
+          {p1v && p2v && (loadingInsight||insight) && (
+            <div style={{ borderTop:"1px solid #161616", marginTop:8, paddingTop:14 }}>
               {loadingInsight
                 ? <p style={{ fontSize:9, color:"#c0152a", fontFamily:"'DM Mono',monospace", letterSpacing:"0.25em", opacity:0.5, textAlign:"center", animation:"pulse 1.5s ease infinite" }}>READING THE ROOM...</p>
                 : insight && (
-                  <div style={{ background:"#0a0a0a", border:"1px solid #c0152a30", padding:"14px 16px", position:"relative" }}>
+                  <div style={{ background:"#0a0a0a", border:"1px solid #c0152a30", padding:"14px 16px" }}>
                     <div style={{ fontSize:8, fontFamily:"'DM Mono',monospace", letterSpacing:"0.3em", color:"#c0152a", opacity:0.5, marginBottom:8 }}>PSYCHOLOGICAL INSIGHT</div>
                     <p style={{ fontSize:11, color:"#888", fontFamily:"'DM Mono',monospace", letterSpacing:"0.04em", lineHeight:1.9, margin:0 }}>{insight}</p>
                   </div>
@@ -835,10 +986,12 @@ Based solely on the question and who engaged vs who avoided it, write a 2-senten
 
 // ── SCOREBOARD ────────────────────────────────────────────────
 function Board({ p1, p2, scores, onRestart }) {
+  const [copied, setCopied] = React.useState(false);
   const s1=scores.p1, s2=scores.p2;
-  const pct1=(s1.answered+s1.skipped)?Math.round(s1.answered/(s1.answered+s1.skipped)*100):0;
-  const pct2=(s2.answered+s2.skipped)?Math.round(s2.answered/(s2.answered+s2.skipped)*100):0;
-  const winner=s1.answered>s2.answered?p1:s2.answered>s1.answered?p2:null;
+  const tot1=s1.answered+(s1.dared||0), tot2=s2.answered+(s2.dared||0);
+  const pct1=(tot1+s1.skipped)?Math.round(tot1/(tot1+s1.skipped)*100):0;
+  const pct2=(tot2+s2.skipped)?Math.round(tot2/(tot2+s2.skipped)*100):0;
+  const winner=tot1>tot2?p1:tot2>tot1?p2:null;
   const catStats={};
   [...s1.history,...s2.history].forEach(({category,skipped})=>{
     if(!catStats[category]) catStats[category]={a:0,sk:0};
@@ -848,6 +1001,24 @@ function Board({ p1, p2, scores, onRestart }) {
   const maxSk=Math.max(...sorted.map(([,d])=>d.sk),1);
   const verd=(name,sc)=>sc.skipped===0?`Zero skips. ${name} came to play.`:sc.skipped>=6?`${name} skipped ${sc.skipped}. Protecting something?`:`${name} skipped ${sc.skipped}. Noted.`;
 
+  function shareReceipt() {
+    const mostAvoided = sorted[0] ? catById[sorted[0][0]]?.label||sorted[0][0] : "None";
+    const date = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+    const lines = [
+      "BRUTAL TRUTHS — TRUTH RECEIPT",
+      date,"",
+      `${p1.toUpperCase()} vs ${p2.toUpperCase()}`, "",
+      `${p1}: ${s1.answered} answered · ${s1.dared||0} dared · ${s1.skipped} skipped`,
+      `${p2}: ${s2.answered} answered · ${s2.dared||0} dared · ${s2.skipped} skipped`, "",
+      winner ? `${winner.toUpperCase()} answered more.` : "Dead even.",
+      `Most avoided: ${mostAvoided}`,
+      scores.maxStreak>1 ? `Best streak: ${scores.maxStreak} honest in a row` : "",
+      "", "brutaltruths.loudminds.club",
+    ].filter(l=>l!==undefined).join("\n");
+    if (navigator.share) { navigator.share({title:"Brutal Truths Receipt",text:lines}).catch(()=>{}); }
+    else { navigator.clipboard.writeText(lines).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),2500); }).catch(()=>{}); }
+  }
+
   return (
     <div style={s.root}>
       <div style={s.sbwrap}>
@@ -856,12 +1027,18 @@ function Board({ p1, p2, scores, onRestart }) {
         <div style={{ textAlign:"center", padding:"12px 0", borderTop:"1px solid #161616", borderBottom:"1px solid #161616" }}>
           {winner?<><span style={{ fontSize:20, color:"#f0f0f0", fontStyle:"italic" }}>{winner}</span><span style={{ fontSize:12, color:"#444", fontFamily:"monospace" }}> answered more</span></>:<span style={{ fontSize:12, color:"#444", fontFamily:"monospace" }}>Dead even.</span>}
         </div>
+        {scores.maxStreak>1 && (
+          <div style={{ textAlign:"center", padding:"8px 0", border:"1px solid rgba(192,21,42,0.2)", background:"rgba(192,21,42,0.05)" }}>
+            <span style={{ fontSize:9, fontFamily:"monospace", letterSpacing:"0.2em", color:"#c0152a" }}>BEST STREAK: {scores.maxStreak} IN A ROW</span>
+          </div>
+        )}
         <div style={{ display:"flex", gap:10 }}>
-          {[{name:p1,sc:s1,pct:pct1,col:"#FF4D4D"},{name:p2,sc:s2,pct:pct2,col:"#38BDF8"}].map(({name,sc,pct,col})=>(
+          {[{name:p1,sc:s1,tot:tot1,pct:pct1,col:"#FF4D4D"},{name:p2,sc:s2,tot:tot2,pct:pct2,col:"#38BDF8"}].map(({name,sc,tot,pct,col})=>(
             <div key={name} style={{ flex:1, border:`1px solid ${col}`, borderRadius:6, padding:"16px 12px", background:"#0f0f0f", display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
               <div style={{ fontSize:9, fontFamily:"monospace", letterSpacing:"0.18em", color:col, fontWeight:"bold" }}>{name}</div>
-              <div style={{ fontSize:54, fontWeight:"bold", fontFamily:"Georgia,serif", color:col, lineHeight:1 }}>{sc.answered}</div>
+              <div style={{ fontSize:54, fontWeight:"bold", fontFamily:"Georgia,serif", color:col, lineHeight:1 }}>{tot}</div>
               <div style={{ fontSize:7, fontFamily:"monospace", color:"#2a2a2a", letterSpacing:"0.25em" }}>ANSWERED</div>
+              {(sc.dared||0)>0 && <div style={{ fontSize:8, fontFamily:"monospace", color:"#c0152a", opacity:0.6 }}>{sc.dared} via dare</div>}
               <div style={{ width:"100%", height:2, background:"#161616", borderRadius:2, margin:"6px 0 3px" }}>
                 <div style={{ height:"100%", borderRadius:2, width:`${pct}%`, background:col }} />
               </div>
@@ -876,21 +1053,21 @@ function Board({ p1, p2, scores, onRestart }) {
         {sorted.length>0&&(
           <div style={{ background:"#0f0f0f", border:"1px solid #161616", borderRadius:6, padding:"14px 16px", display:"flex", flexDirection:"column", gap:8 }}>
             <div style={{ fontSize:8, fontFamily:"monospace", letterSpacing:"0.3em", color:"#2e2e2e", marginBottom:2 }}>SKIPS BY CATEGORY</div>
-            {sorted.map(([id,d])=>{
-              const cat=catById[id]; if(!cat) return null;
-              return(
-                <div key={id} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <div style={{ width:5, height:5, borderRadius:"50%", background:cat.color, flexShrink:0 }} />
-                  <span style={{ fontSize:9, fontFamily:"monospace", color:"#444", width:88 }}>{cat.label}</span>
-                  <div style={{ flex:1, height:2, background:"#161616", borderRadius:2 }}>
-                    <div style={{ height:"100%", width:`${(d.sk/maxSk)*100}%`, background:cat.color, opacity:0.7, borderRadius:2 }} />
-                  </div>
-                  <span style={{ fontSize:9, fontFamily:"monospace", color:"#333", minWidth:64, textAlign:"right" }}>{d.sk>0?`${d.sk} skipped`:"✓"}</span>
+            {sorted.map(([id,d])=>{ const cat=catById[id]; if(!cat) return null;
+              return(<div key={id} style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ width:5, height:5, borderRadius:"50%", background:cat.color, flexShrink:0 }} />
+                <span style={{ fontSize:9, fontFamily:"monospace", color:"#444", width:88 }}>{cat.label}</span>
+                <div style={{ flex:1, height:2, background:"#161616", borderRadius:2 }}>
+                  <div style={{ height:"100%", width:`${(d.sk/maxSk)*100}%`, background:cat.color, opacity:0.7, borderRadius:2 }} />
                 </div>
-              );
+                <span style={{ fontSize:9, fontFamily:"monospace", color:"#333", minWidth:64, textAlign:"right" }}>{d.sk>0?`${d.sk} skipped`:"✓"}</span>
+              </div>);
             })}
           </div>
         )}
+        <button onClick={shareReceipt} style={{ ...s.btn, background:"#0d0d0d", border:"1px solid #1e1e1e", color:copied?"#c0152a":"#555" }}>
+          {copied?"COPIED TO CLIPBOARD ✓":"SHARE TRUTH RECEIPT"}
+        </button>
         <button style={{ ...s.btn, background:"transparent", border:"1px solid #c0152a", color:"#c0152a", marginBottom:48 }} onClick={onRestart}>PLAY AGAIN</button>
       </div>
     </div>
@@ -898,15 +1075,17 @@ function Board({ p1, p2, scores, onRestart }) {
 }
 
 function App() {
-  const [screen, setScreen] = useState("setup");
-  const [p1, setP1] = useState("");
-  const [p2, setP2] = useState("");
-  const [deck, setDeck] = useState([]);
-  const [scores, setScores] = useState(null);
+  const [screen, setScreen] = React.useState("setup");
+  const [p1, setP1] = React.useState("");
+  const [p2, setP2] = React.useState("");
+  const [deck, setDeck] = React.useState([]);
+  const [scores, setScores] = React.useState(null);
+  const [intensity, setIntensity] = React.useState("brutal");
+  const [timerMode, setTimerMode] = React.useState(0);
 
-  if (screen==="setup") return <Setup onStart={(n1,n2,qs)=>{ setP1(n1); setP2(n2); setDeck(qs); setScreen("game"); }} />;
-  if (screen==="game") return <Game p1={p1} p2={p2} deck={deck} onFinish={sc=>{ setScores(sc); setScreen("board"); }} />;
-  if (screen==="board") return <Board p1={p1} p2={p2} scores={scores} onRestart={()=>setScreen("setup")} />;
+  if (screen==="setup") return <Setup onStart={(n1,n2,qs,intens,timer)=>{ setP1(n1); setP2(n2); setDeck(qs); setIntensity(intens); setTimerMode(timer); setScreen("game"); }} />;
+  if (screen==="game") return <Game p1={p1} p2={p2} deck={deck} intensity={intensity} timerMode={timerMode} onFinish={sc=>{ setScores(sc); setScreen("board"); }} />;
+  if (screen==="board") return <Board p1={p1} p2={p2} scores={scores} onRestart={()=>{ stopAmbient(); setScreen("setup"); }} />;
 }
 
 const s = {
@@ -953,9 +1132,9 @@ const s = {
   sbwrap:{ width:"100%", maxWidth:480, paddingTop:32, display:"flex", flexDirection:"column", gap:16 },
 };
 
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(App));
-  </script>
+
+</script>
 </body>
 </html>
