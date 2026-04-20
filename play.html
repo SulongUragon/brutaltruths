@@ -652,6 +652,10 @@ function stopAmbient() {
   } catch(e) {}
 }
 
+// ── COOKIE HELPERS ───────────────────────────────────────────
+function getLMCookie(n){const m=document.cookie.split("; ").find(r=>r.startsWith(n+"="));return m?decodeURIComponent(m.split("=")[1]):"";}
+function setLMCookie(n,v){if(!v)return;document.cookie=`${n}=${encodeURIComponent(v)}; domain=.loudminds.club; path=/; SameSite=Lax; max-age=31536000`;}
+
 // ── DARES ─────────────────────────────────────────────────────
 const DARES = [
   "Look your partner in the eyes and say the first honest thing that comes to mind.",
@@ -680,7 +684,7 @@ function Setup({ onStart }) {
   const [p2, setP2] = React.useState("");
   const [step, setStep] = React.useState("names");
   const [counts, setCounts] = React.useState(() => Object.fromEntries(CATS.map(c => [c.id, 0])));
-  const [apiKey, setApiKey] = React.useState(() => localStorage.getItem("bt_api_key") || "");
+  const [apiKey, setApiKey] = React.useState(() => getLMCookie("lm_anthropic_key") || localStorage.getItem("bt_api_key") || "");
   const [intensity, setIntensity] = React.useState("brutal");
   const [timerMode, setTimerMode] = React.useState(0);
 
@@ -740,7 +744,7 @@ function Setup({ onStart }) {
 
         <div style={s.fld}>
           <label style={s.lbl}>ANTHROPIC KEY <span style={{ color:"#c0152a", opacity:0.5 }}>(optional — enables AI insights)</span></label>
-          <input style={s.inp} type="password" value={apiKey} placeholder="sk-ant-..." onChange={e => { setApiKey(e.target.value); localStorage.setItem("bt_api_key", e.target.value); }} />
+          <input style={s.inp} type="password" value={apiKey} placeholder="sk-ant-..." onChange={e => { setApiKey(e.target.value); localStorage.setItem("bt_api_key", e.target.value); setLMCookie("lm_anthropic_key", e.target.value); }} />
         </div>
         <button style={{ ...s.btn, background:"#c0152a", color:"#f0ece4", opacity: p1.trim()&&p2.trim()?1:0.2 }}
           disabled={!p1.trim()||!p2.trim()} onClick={() => setStep("cats")}>
@@ -833,7 +837,7 @@ function Game({ p1, p2, deck, intensity, timerMode, onFinish }) {
 
   React.useEffect(() => {
     if (!p1v || !p2v) return;
-    const apiKey = localStorage.getItem("bt_api_key") || localStorage.getItem("lmc_repurpose_key");
+    const apiKey = getLMCookie("lm_anthropic_key") || localStorage.getItem("bt_api_key") || localStorage.getItem("lmc_repurpose_key");
     if (!apiKey) return;
     const cur = deck[idx];
     const p1label = p1v==="n" ? "skipped" : "answered";
